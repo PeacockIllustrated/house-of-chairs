@@ -3,7 +3,12 @@
 import { useState } from "react";
 import ImagesEditor from "@/components/admin/ImagesEditor";
 import BandsEditor from "@/components/admin/BandsEditor";
-import { STATUSES, SECTION_TOGGLES } from "@/components/admin/types";
+import {
+  STATUSES,
+  SECTION_TOGGLES,
+  QUANTITY_GROUPING,
+  QUANTITY_TERM,
+} from "@/components/admin/types";
 import type {
   AdminCategory,
   AdminPiece,
@@ -87,6 +92,11 @@ export default function PieceEditor({
     provenance_verified: piece?.provenance_verified ?? false,
     story: piece?.story ?? "",
     restoration_notes: piece?.restoration_notes ?? "",
+    // Read out of the specimen record rather than a column of its own; saving
+    // writes it back as the same row. Kept as a string so the field can be
+    // cleared, which removes the row instead of recording a zero.
+    quantity:
+      specs.find((r) => r.term === QUANTITY_TERM)?.detail.trim() ?? "",
   });
   // An absent key means enabled, so every toggle starts true unless the
   // piece explicitly switched it off. Saving writes all nine back.
@@ -118,12 +128,16 @@ export default function PieceEditor({
   const [specRows, setSpecRowsRaw] = useState<
     { id?: string; grouping: string; term: string; detail: string }[]
   >(
-    specs.map((r) => ({
-      id: r.id,
-      grouping: r.grouping,
-      term: r.term,
-      detail: r.detail,
-    })),
+    // The count has a field of its own above, so it is held out of the rows
+    // listed here; editing it in two places would let the two disagree.
+    specs
+      .filter((r) => r.term !== QUANTITY_TERM)
+      .map((r) => ({
+        id: r.id,
+        grouping: r.grouping,
+        term: r.term,
+        detail: r.detail,
+      })),
   );
   const [inclRows, setInclRowsRaw] = useState<
     { id?: string; label: string; note: string }[]
@@ -241,11 +255,25 @@ export default function PieceEditor({
           image_alt: r.image_alt,
           layout: r.layout,
         })),
-        specs: specRows.map((r) => ({
-          grouping: r.grouping,
-          term: r.term,
-          detail: r.detail,
-        })),
+        // The count leads the specimen record, then the rows as arranged. An
+        // empty field writes no row at all, so a piece with nothing recorded
+        // stays silent rather than claiming a quantity of zero.
+        specs: [
+          ...(form.quantity.trim()
+            ? [
+                {
+                  grouping: QUANTITY_GROUPING,
+                  term: QUANTITY_TERM,
+                  detail: form.quantity.trim(),
+                },
+              ]
+            : []),
+          ...specRows.map((r) => ({
+            grouping: r.grouping,
+            term: r.term,
+            detail: r.detail,
+          })),
+        ],
         included: inclRows.map((r) => ({ label: r.label, note: r.note })),
         faqs: faqRows.map((r) => ({
           question: r.question,
@@ -381,6 +409,19 @@ export default function PieceEditor({
             </option>
           ))}
         </select>
+      </div>
+      <div className="field">
+        <label>Examples available</label>
+        <input
+          inputMode="numeric"
+          value={form.quantity}
+          onChange={(e) => set("quantity", e.target.value)}
+          placeholder="1"
+        />
+        <p className="admin-hint">
+          How many of this piece are held. Shows in the collection list, and on
+          the piece page in the specimen record. Leave empty to say nothing.
+        </p>
       </div>
       <label className="admin-check mono">
         <input

@@ -156,6 +156,27 @@ export const emptyAdminData: AdminData = {
   interest: [],
 };
 
+// How many examples of a piece are held. There is no column for it: the count
+// lives as a specimen record row, which is where the piece page already shows
+// facts of that kind. These two constants are the contract between the editor,
+// which writes the row, and the pieces list, which reads it back, so the pair
+// never drifts apart.
+export const QUANTITY_GROUPING = "Availability";
+export const QUANTITY_TERM = "Examples available";
+
+/** The count held for a piece, or null where none has been recorded. */
+export function quantityOf(
+  specs: AdminSpec[],
+  pieceId: string,
+): number | null {
+  const row = specs.find(
+    (s) => s.piece_id === pieceId && s.term === QUANTITY_TERM,
+  );
+  if (!row) return null;
+  const n = Number(row.detail.trim());
+  return Number.isFinite(n) ? n : null;
+}
+
 export const STATUSES: PieceStatus[] = [
   "draft",
   "available",
