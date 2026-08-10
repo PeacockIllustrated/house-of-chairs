@@ -17,6 +17,65 @@ export type RoomVisual =
   | "rings"
   | "silhouette";
 
+/**
+ * The studies an era can be given, as the dashboard offers them. "tide" is
+ * absent on purpose: it has no renderer and falls through to a text
+ * placeholder, so it is not something to hand anyone as a choice.
+ *
+ * The name is what the picker shows. The description doubles as the accessible
+ * label for the drawing, read after the era's own name, which is why each one
+ * describes what is actually on screen rather than naming the file.
+ */
+export const ROOM_VISUALS: {
+  kind: Exclude<RoomVisual, "tide">;
+  name: string;
+  description: string;
+}[] = [
+  {
+    kind: "strata",
+    name: "Strata",
+    description: "parallel bands drawn with machine precision",
+  },
+  {
+    kind: "rings",
+    name: "Rings",
+    description: "rings of timber grain breathing slowly",
+  },
+  {
+    kind: "chair",
+    name: "Ball chair",
+    description: "a ball chair that turns to face you",
+  },
+  {
+    kind: "grove",
+    name: "Grove",
+    description: "lines branching like a carved frame",
+  },
+  {
+    kind: "silhouette",
+    name: "Silhouette",
+    description: "a chair drawn in one continuous line",
+  },
+];
+
+/** The accessible label for an era's drawing, the era named first. */
+export function visualLabel(categoryName: string, visual: string): string {
+  const found = ROOM_VISUALS.find((v) => v.kind === visual);
+  return found ? `${categoryName}, ${found.description}` : categoryName;
+}
+
+/**
+ * Narrow a stored string to a study that has a renderer. The column has a
+ * check constraint, so this only earns its keep at the boundary where the
+ * value arrives as plain text; anything unrecognised draws the rings rather
+ * than falling through to the text placeholder.
+ */
+export function asRoomVisual(value: string): RoomVisual {
+  return ROOM_VISUALS.some((v) => v.kind === value)
+    ? (value as RoomVisual)
+    : "rings";
+}
+
 export interface Fact {
   term: string;
   detail: string;

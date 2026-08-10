@@ -13,6 +13,7 @@ import type { AdminData } from "@/components/admin/types";
 export type PanelId =
   | "overview"
   | "pieces"
+  | "categories"
   | "enquiries"
   | "interest"
   | "list"

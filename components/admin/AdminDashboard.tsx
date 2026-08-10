@@ -5,6 +5,7 @@ import { emptyAdminData } from "@/components/admin/types";
 import type { AdminData } from "@/components/admin/types";
 import OverviewPanel, { type PanelId } from "@/components/admin/OverviewPanel";
 import PiecesPanel from "@/components/admin/PiecesPanel";
+import CategoriesPanel from "@/components/admin/CategoriesPanel";
 import WordsPanel from "@/components/admin/WordsPanel";
 import QuestionsPanel from "@/components/admin/QuestionsPanel";
 import SitePanel from "@/components/admin/SitePanel";
@@ -42,6 +43,7 @@ const NAV: { heading: string; items: NavItem[] }[] = [
     heading: "The collection",
     items: [
       { id: "pieces", label: "Pieces", hint: "Add, edit and photograph stock" },
+      { id: "categories", label: "Eras", hint: "The drawing that stands for each" },
     ],
   },
   {
@@ -255,6 +257,13 @@ export default function AdminDashboard() {
           ) : null}
           {panel === "pieces" ? (
             <PiecesPanel data={data} onReload={reload} />
+          ) : null}
+          {panel === "categories" ? (
+            <CategoriesPanel
+              categories={data.categories}
+              pieces={data.pieces}
+              onReload={reload}
+            />
           ) : null}
           {panel === "words" ? (
             <WordsPanel

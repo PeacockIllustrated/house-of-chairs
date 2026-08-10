@@ -7,7 +7,7 @@ import type {
   FeatureLayout,
   PieceStatus,
 } from "./supabase/types";
-import { rooms } from "@/content/landing";
+import { rooms, type RoomVisual } from "@/content/landing";
 import { staticPieces } from "@/content/pieces";
 import {
   defaultIncluded,
@@ -33,6 +33,8 @@ export interface Category {
   hint: string;
   facts: CategoryFact[];
   placeholder: boolean;
+  /** Which generative study stands for this era, chosen in the dashboard. */
+  visual: RoomVisual;
 }
 
 export interface Provenance {
@@ -130,6 +132,7 @@ function staticCategories(): Category[] {
     hint: room.hint,
     facts: room.facts,
     placeholder: true,
+    visual: room.visual,
   }));
 }
 
@@ -175,7 +178,7 @@ export const getCategories = cache(async (): Promise<Category[]> => {
     const supabase = createPublicClient();
     const { data, error } = await supabase
       .from("modern_categories")
-      .select("slug,name,position,story,hint,facts,placeholder")
+      .select("slug,name,position,story,hint,facts,placeholder,visual")
       .order("position");
     if (!error && data) return data as Category[];
   } catch {
