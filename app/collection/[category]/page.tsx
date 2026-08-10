@@ -15,8 +15,12 @@ import RevealObserver from "@/components/scroll/RevealObserver";
 
 export const revalidate = 60;
 
-export function generateStaticParams() {
-  return rooms.map((r) => ({ category: r.slug }));
+// Eras come from the dashboard, so the params come from the database rather
+// than the five the landing page happens to draw. getCategories falls back to
+// the static list when there is no database to read.
+export async function generateStaticParams() {
+  const categories = await getCategories();
+  return categories.map((c) => ({ category: c.slug }));
 }
 
 export async function generateMetadata({
@@ -37,8 +41,11 @@ export default async function CategoryPage({
 }) {
   const { category } = await params;
   const data = await getCategoryBySlug(category);
+  if (!data) notFound();
+  // The generative band is decoration, and only the five original eras have a
+  // drawing of their own. An era added in the dashboard falls back to a
+  // default rather than turning the whole page into a 404.
   const room = rooms.find((r) => r.slug === category);
-  if (!data || !room) notFound();
 
   // The same cached read as getCategoryBySlug, so the count costs nothing.
   const categories = await getCategories();
@@ -56,9 +63,9 @@ export default async function CategoryPage({
       </nav>
 
       <CategoryBand
-        visual={room.visual}
-        label={room.canvasLabel}
-        dark={room.variant === "dark"}
+        visual={room?.visual ?? "rings"}
+        label={room?.canvasLabel ?? data.name}
+        dark={room?.variant === "dark"}
       />
 
       <div className="page-head">
