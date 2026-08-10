@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import PieceEditor from "@/components/admin/PieceEditor";
 import DeleteConfirm from "@/components/admin/DeleteConfirm";
-import { STATUSES } from "@/components/admin/types";
+import { STATUSES, quantityOf } from "@/components/admin/types";
 import type { AdminData } from "@/components/admin/types";
 
 /**
@@ -35,6 +35,16 @@ export default function PiecesPanel({
     }
     return map;
   }, [data.images]);
+
+  // How many examples are held, per piece, for the count on each row.
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const piece of data.pieces) {
+      const n = quantityOf(data.specs, piece.id);
+      if (n != null) map.set(piece.id, n);
+    }
+    return map;
+  }, [data.pieces, data.specs]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -113,7 +123,18 @@ export default function PiecesPanel({
         <p className="mono" style={{ opacity: 0.6 }}>
           No pieces match.
         </p>
-      ) : null}
+      ) : (
+        // Stock at a glance for whatever the filters currently show, so
+        // narrowing to one status answers "how many of those do I have".
+        <p className="admin-stock mono" role="status">
+          {shown.length} {shown.length === 1 ? "listing" : "listings"},{" "}
+          {shown.reduce((sum, p) => sum + (counts.get(p.id) ?? 0), 0)} examples
+          held
+          {shown.some((p) => !counts.has(p.id))
+            ? `, ${shown.filter((p) => !counts.has(p.id)).length} with no count recorded`
+            : ""}
+        </p>
+      )}
 
       <ul className="admin-list">
         {shown.map((piece) => (
@@ -141,6 +162,11 @@ export default function PiecesPanel({
                     {piece.placeholder ? " · placeholder" : ""}
                     {piece.featured ? " · starred" : ""}
                   </span>
+                  {counts.has(piece.id) ? (
+                    <span className="admin-held" title="Examples available">
+                      {counts.get(piece.id)} held
+                    </span>
+                  ) : null}
                 </span>
                 <p>
                   <strong>{piece.title}</strong>

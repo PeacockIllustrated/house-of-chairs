@@ -2725,6 +2725,27 @@ button.enquire {
   align-items: center;
   gap: 0.45rem;
 }
+/* How many examples are held, sat beside the status on a collection row.
+   Data, not decoration, so it borrows the panel ground rather than a colour. */
+.admin-held {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.55rem;
+  padding: 0.1rem 0.42rem;
+  border: 1px solid rgba(30, 33, 30, 0.16);
+  border-radius: var(--radius-s);
+  background: var(--panel);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+/* The stock summary above the collection list, counting whatever the search
+   and status filters currently show. */
+.admin-stock {
+  margin-bottom: 1.1rem;
+  opacity: 0.7;
+}
 .admin-status-dot {
   width: 8px;
   height: 8px;
