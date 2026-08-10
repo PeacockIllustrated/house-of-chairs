@@ -1,12 +1,11 @@
 import type { RoomVisual } from "@/content/landing";
 
-const STUDY_NAME: Record<RoomVisual, string> = {
+// Only studies without a renderer of their own reach this file, so the map is
+// partial by design: everything else is drawn rather than named. A study added
+// to the union without a renderer falls back to its own key rather than
+// failing to compile, which is the right trade for a stand-in.
+const STUDY_NAME: Partial<Record<RoomVisual, string>> = {
   tide: "Tide, the grain of time",
-  chair: "Ball chair, assembling",
-  grove: "Grove, the collection branching",
-  strata: "Strata, veneer and lacquer",
-  rings: "Rings, grain and ownership",
-  silhouette: "Silhouette, a chair in one line",
 };
 
 /**
@@ -35,7 +34,7 @@ export default function PanelPlaceholder({
       }}
     >
       <span className="mono" style={{ opacity: 0.4 }}>
-        {STUDY_NAME[visual]}
+        {STUDY_NAME[visual] ?? visual}
       </span>
     </div>
   );
