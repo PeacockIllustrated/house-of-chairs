@@ -15,7 +15,15 @@ export type RoomVisual =
   | "grove"
   | "strata"
   | "rings"
-  | "silhouette";
+  | "silhouette"
+  | "tubular"
+  | "weave"
+  | "orbit"
+  | "terrazzo"
+  | "arcade"
+  | "facet"
+  | "stack"
+  | "brushed";
 
 /**
  * The studies an era can be given, as the dashboard offers them. "tide" is
@@ -55,6 +63,46 @@ export const ROOM_VISUALS: {
     kind: "silhouette",
     name: "Silhouette",
     description: "a chair drawn in one continuous line",
+  },
+  {
+    kind: "weave",
+    name: "Weave",
+    description: "a paper cord seat, warp crossing weft",
+  },
+  {
+    kind: "tubular",
+    name: "Tubular",
+    description: "a cantilever bent from one run of steel",
+  },
+  {
+    kind: "brushed",
+    name: "Brushed",
+    description: "the grain a linishing belt leaves on aluminium",
+  },
+  {
+    kind: "orbit",
+    name: "Orbit",
+    description: "atomic shells turning around a nucleus",
+  },
+  {
+    kind: "stack",
+    name: "Stack",
+    description: "moulded shells nested one into the next",
+  },
+  {
+    kind: "terrazzo",
+    name: "Terrazzo",
+    description: "marble chips set in a poured floor",
+  },
+  {
+    kind: "arcade",
+    name: "Arcade",
+    description: "a colonnade of arches receding",
+  },
+  {
+    kind: "facet",
+    name: "Facet",
+    description: "planes of tinted polycarbonate crossing",
   },
 ];
 
