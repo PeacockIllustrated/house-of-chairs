@@ -16,6 +16,8 @@ export interface AdminCategory {
   id: string;
   slug: string;
   name: string;
+  /** The generative study shown for this era; one of ROOM_VISUALS. */
+  visual: string;
 }
 export interface AdminPiece {
   id: string;

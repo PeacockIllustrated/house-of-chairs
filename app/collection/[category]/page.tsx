@@ -7,7 +7,7 @@ import {
   getPieces,
   getPieceHeroImages,
 } from "@/lib/collection";
-import { rooms } from "@/content/landing";
+import { rooms, visualLabel } from "@/content/landing";
 import CategoryBand from "@/components/collection/CategoryBand";
 import PieceCard from "@/components/collection/PieceCard";
 import FeatureBand from "@/components/gallery/FeatureBand";
@@ -42,9 +42,9 @@ export default async function CategoryPage({
   const { category } = await params;
   const data = await getCategoryBySlug(category);
   if (!data) notFound();
-  // The generative band is decoration, and only the five original eras have a
-  // drawing of their own. An era added in the dashboard falls back to a
-  // default rather than turning the whole page into a 404.
+  // The study is chosen per era in the dashboard. The ground it sits on is
+  // still a property of the five original eras, so an era added later takes
+  // the light ground rather than inheriting nothing.
   const room = rooms.find((r) => r.slug === category);
 
   // The same cached read as getCategoryBySlug, so the count costs nothing.
@@ -63,8 +63,8 @@ export default async function CategoryPage({
       </nav>
 
       <CategoryBand
-        visual={room?.visual ?? "rings"}
-        label={room?.canvasLabel ?? data.name}
+        visual={data.visual}
+        label={visualLabel(data.name, data.visual)}
         dark={room?.variant === "dark"}
       />
 

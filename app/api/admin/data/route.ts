@@ -19,7 +19,10 @@ export async function GET() {
   const db = createAdminClient();
   const [c, p, pr, im, ft, sp, inc, fq, ts, st, sub, en, it] =
     await Promise.all([
-      db.from("modern_categories").select("id,slug,name").order("position"),
+      db
+        .from("modern_categories")
+        .select("id,slug,name,visual")
+        .order("position"),
       db.from("modern_pieces").select("*").order("created_at", { ascending: false }),
       db.from("modern_provenance").select("*").order("position"),
       db.from("modern_piece_images").select("*").order("position"),

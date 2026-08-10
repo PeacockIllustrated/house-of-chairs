@@ -30,10 +30,13 @@ interface CategoryRow {
   facts: CategoryFact[];
   placeholder: boolean;
   created_at: string;
+  /** Which generative study stands for the era; see ROOM_VISUALS. */
+  visual: string;
 }
 interface CategoryInsert {
   slug: string;
   name: string;
+  visual?: string;
   position?: number;
   story?: string;
   hint?: string;
