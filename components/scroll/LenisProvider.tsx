@@ -3,6 +3,7 @@
 import { ReactLenis, useLenis } from "lenis/react";
 import type { LenisRef } from "lenis/react";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -18,13 +19,19 @@ export default function LenisProvider({
   children: React.ReactNode;
 }) {
   const lenisRef = useRef<LenisRef>(null);
-  const [reduced, setReduced] = useState(false);
+  const [prefersReduced, setPrefersReduced] = useState(false);
+  const pathname = usePathname();
+
+  // Smoothing is for the shopfront. The dashboard is a long form worked on a
+  // phone, where eased scrolling fights the keyboard and makes a field you
+  // just tapped drift out from under your thumb, so it scrolls natively.
+  const reduced = prefersReduced || pathname.startsWith("/admin");
 
   // Read the preference once on the client, then remount with smoothing off.
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = () => setReduced(mq.matches);
+    setPrefersReduced(mq.matches);
+    const onChange = () => setPrefersReduced(mq.matches);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
