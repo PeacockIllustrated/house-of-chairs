@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { HONEYPOT_FIELD } from "@/lib/botCheck";
+import Honeypot from "@/components/forms/Honeypot";
+import { useStartedAt } from "@/components/forms/useStartedAt";
 
 /**
  * The acquisitions list form in the footer. A single email field posting to
@@ -14,13 +17,15 @@ export default function NewsletterForm() {
     "idle",
   );
   const [note, setNote] = useState("");
+  const startedAt = useStartedAt();
   const fallbackNote = "We could not note that just now, email us instead.";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (status === "sending") return;
     const form = e.currentTarget;
-    const email = String(new FormData(form).get("email") ?? "").trim();
+    const data = new FormData(form);
+    const email = String(data.get("email") ?? "").trim();
     if (!email) {
       setStatus("error");
       setNote("Add your email address first.");
@@ -32,7 +37,11 @@ export default function NewsletterForm() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD),
+          startedAt: startedAt.current,
+        }),
       });
       if (res.ok) {
         setStatus("ok");
@@ -55,6 +64,7 @@ export default function NewsletterForm() {
 
   return (
     <form className="news-form" onSubmit={onSubmit} noValidate>
+      <Honeypot />
       {status === "ok" ? null : (
         <div className="news-row">
           <input

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import type { EnquiryKind } from "@/lib/supabase/types";
+import { HONEYPOT_FIELD } from "@/lib/botCheck";
+import Honeypot from "./Honeypot";
+import { useStartedAt } from "./useStartedAt";
 
 const KIND_LABELS: Partial<Record<EnquiryKind, string>> = {
   piece: "About a piece",
@@ -29,6 +32,7 @@ export default function EnquiryForm({
     "idle",
   );
   const [note, setNote] = useState("");
+  const startedAt = useStartedAt();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,6 +51,8 @@ export default function EnquiryForm({
           message: data.get("message"),
           kind: data.get("kind"),
           pieceSlug: pieceSlug ?? null,
+          [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD),
+          startedAt: startedAt.current,
         }),
       });
       const json = await res.json();
@@ -69,6 +75,7 @@ export default function EnquiryForm({
 
   return (
     <form className="form" onSubmit={onSubmit} noValidate>
+      <Honeypot />
       {pieceTitle ? (
         <input type="hidden" name="pieceTitle" value={pieceTitle} />
       ) : null}
