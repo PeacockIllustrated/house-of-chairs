@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("New name for the acquisitions list", [
+    await notifyOwner("subscriber", "New name for the acquisitions list", [
       `Email: ${email}`,
     ]);
     return NextResponse.json({ ok: true, stored: true });

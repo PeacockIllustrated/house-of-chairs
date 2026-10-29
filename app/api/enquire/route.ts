@@ -113,14 +113,14 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner(`New ${kind} enquiry from ${name}`, [
+    await notifyOwner("enquiry", `New ${kind} enquiry from ${name}`, [
       `Kind: ${kind}`,
       pieceSlug ? `Piece: ${pieceSlug}` : "Piece: not specified",
       `Name: ${name}`,
       `Email: ${email}`,
       "",
       message,
-    ]);
+    ], { email, name });
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(

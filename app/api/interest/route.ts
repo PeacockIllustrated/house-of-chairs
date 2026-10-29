@@ -87,10 +87,10 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner(`Interest registered in ${pieceSlug}`, [
+    await notifyOwner("interest", `Interest registered in ${pieceSlug}`, [
       `Piece: ${pieceSlug}`,
       `Email: ${email ?? "not left"}`,
-    ]);
+    ], email ? { email } : null);
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(
