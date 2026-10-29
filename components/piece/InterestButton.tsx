@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { HONEYPOT_FIELD } from "@/lib/botCheck";
+import Honeypot from "@/components/forms/Honeypot";
+import { useStartedAt } from "@/components/forms/useStartedAt";
 
 /**
  * "I want this": a lightweight expression of interest against a piece. A single
@@ -14,8 +17,9 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
     "idle",
   );
   const [note, setNote] = useState("");
+  const startedAt = useStartedAt();
 
-  async function register(email: string | null) {
+  async function register(email: string | null, trap: string) {
     if (status === "sending") return;
     setStatus("sending");
     setNote("");
@@ -23,7 +27,12 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
       const res = await fetch("/api/interest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pieceSlug, email }),
+        body: JSON.stringify({
+          pieceSlug,
+          email,
+          [HONEYPOT_FIELD]: trap,
+          startedAt: startedAt.current,
+        }),
       });
       const json = await res.json();
       if (res.ok) {
@@ -47,7 +56,7 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
     const email = String(data.get("email") ?? "").trim();
-    register(email || null);
+    register(email || null, String(data.get(HONEYPOT_FIELD) ?? ""));
   }
 
   if (status === "ok") {
@@ -62,6 +71,7 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
     <div className="interest">
       {open ? (
         <form className="interest-form" onSubmit={onSubmit} noValidate>
+          <Honeypot />
           <p className="mono interest-lead">
             Leave an email and we will tell you when this piece moves, or press
             register to note your interest without one.

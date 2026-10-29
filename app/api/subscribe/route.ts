@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyOwner } from "@/lib/email";
+import { looksLikeBot } from "@/lib/botCheck";
 import type { Database } from "@/lib/supabase/types";
 
 /**
@@ -23,6 +24,11 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // A bot is told it succeeded, so it learns nothing, and nothing is kept.
+  if (looksLikeBot(body)) {
+    return NextResponse.json({ ok: true, stored: true });
   }
 
   const email =
@@ -76,7 +82,7 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("New name for the acquisitions list", [
+    await notifyOwner("subscriber", "New name for the acquisitions list", [
       `Email: ${email}`,
     ]);
     return NextResponse.json({ ok: true, stored: true });

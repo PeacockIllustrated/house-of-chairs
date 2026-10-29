@@ -999,6 +999,15 @@ dd {
 }
 
 /* Forms: enquire, sell, admin */
+/* The bot honeypot (components/forms/Honeypot): off-screen, never seen. */
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .form {
   max-width: 40rem;
 }
