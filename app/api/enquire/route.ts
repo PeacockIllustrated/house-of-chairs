@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyOwner } from "@/lib/email";
+import { looksLikeBot } from "@/lib/botCheck";
+import { looksAutomated } from "@/lib/spamSignals";
+import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database, EnquiryKind } from "@/lib/supabase/types";
 
 const KINDS: EnquiryKind[] = ["piece", "sourcing", "selling"];
@@ -18,6 +21,17 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // A bot is told it succeeded, so it learns nothing, and nothing is kept.
+  if (looksLikeBot(body)) {
+    return NextResponse.json({ ok: true, stored: true });
+  }
+
+  // Cloudflare Turnstile, once its keys are set. A person who fails it is told
+  // so plainly and can send again; a fresh token comes with the next try.
+  if (!(await passesTurnstile(body, clientKey(req)))) {
+    return NextResponse.json({ error: TURNSTILE_REFUSAL }, { status: 400 });
   }
 
   const name = String(body.name ?? "").trim();
@@ -74,17 +88,20 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
+    const { formsDb } = await import("@/lib/supabase/formsDb");
+    const supabase = await formsDb();
 
     let pieceId: string | null = null;
+    let pieceTitle: string | null = null;
     if (pieceSlug) {
       const { data } = await supabase
         .from("modern_pieces")
-        .select("id")
+        .select("id, title")
         .eq("slug", pieceSlug)
         .maybeSingle();
-      pieceId = (data as { id: string } | null)?.id ?? null;
+      const piece = data as { id: string; title: string } | null;
+      pieceId = piece?.id ?? null;
+      pieceTitle = piece?.title ?? null;
     }
 
     // The payload is type-checked against the Insert type; the insert call is
@@ -107,14 +124,28 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner(`New ${kind} enquiry from ${name}`, [
-      `Kind: ${kind}`,
-      pieceSlug ? `Piece: ${pieceSlug}` : "Piece: not specified",
-      `Name: ${name}`,
-      `Email: ${email}`,
-      "",
-      message,
-    ]);
+    // Stored either way, so the dashboard keeps a record, but an enquiry that
+    // matches the known bot pattern is not emailed on.
+    if (!looksAutomated({ name, email })) {
+      const subject = pieceTitle
+        ? `Enquiry: ${pieceTitle}, from ${name}`
+        : `New ${kind} enquiry from ${name}`;
+      await notifyOwner(
+        "enquiry",
+        subject,
+        [
+          `${name} <${email}>`,
+          pieceTitle
+            ? `About: ${pieceTitle}\nhttps://houseofchairs.co.uk/piece/${pieceSlug}`
+            : `About: ${kind === "piece" ? "no piece named" : kind}`,
+          "",
+          message,
+          "",
+          "Reply to this email to answer them directly.",
+        ],
+        { email, name },
+      );
+    }
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(

@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { HONEYPOT_FIELD } from "@/lib/botCheck";
+import Honeypot from "@/components/forms/Honeypot";
+import { useTurnstile } from "@/components/forms/useTurnstile";
+import { useStartedAt } from "@/components/forms/useStartedAt";
 
 /**
  * The acquisitions list form in the footer. A single email field posting to
@@ -14,13 +18,16 @@ export default function NewsletterForm() {
     "idle",
   );
   const [note, setNote] = useState("");
+  const startedAt = useStartedAt();
+  const turnstile = useTurnstile();
   const fallbackNote = "We could not note that just now, email us instead.";
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (status === "sending") return;
     const form = e.currentTarget;
-    const email = String(new FormData(form).get("email") ?? "").trim();
+    const data = new FormData(form);
+    const email = String(data.get("email") ?? "").trim();
     if (!email) {
       setStatus("error");
       setNote("Add your email address first.");
@@ -28,12 +35,19 @@ export default function NewsletterForm() {
     }
     setStatus("sending");
     setNote("");
+    const turnstileToken = await turnstile.getToken();
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD),
+          startedAt: startedAt.current,
+          turnstileToken,
+        }),
       });
+      turnstile.reset();
       if (res.ok) {
         setStatus("ok");
         form.reset();
@@ -54,7 +68,13 @@ export default function NewsletterForm() {
   }
 
   return (
-    <form className="news-form" onSubmit={onSubmit} noValidate>
+    <form
+      className="news-form"
+      onSubmit={onSubmit}
+      onFocus={turnstile.arm}
+      noValidate
+    >
+      <Honeypot />
       {status === "ok" ? null : (
         <div className="news-row">
           <input
@@ -75,6 +95,7 @@ export default function NewsletterForm() {
           </button>
         </div>
       )}
+      <div ref={turnstile.slot} className="ts-slot" />
       <p
         className="form-note mono"
         role="status"

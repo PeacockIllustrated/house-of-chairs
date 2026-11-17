@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyOwner } from "@/lib/email";
+import { looksLikeBot } from "@/lib/botCheck";
+import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database } from "@/lib/supabase/types";
 
 /**
@@ -23,6 +25,17 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // A bot is told it succeeded, so it learns nothing, and nothing is kept.
+  if (looksLikeBot(body)) {
+    return NextResponse.json({ ok: true, stored: true });
+  }
+
+  // Cloudflare Turnstile, once its keys are set. A person who fails it is told
+  // so plainly and can send again; a fresh token comes with the next try.
+  if (!(await passesTurnstile(body, clientKey(req)))) {
+    return NextResponse.json({ error: TURNSTILE_REFUSAL }, { status: 400 });
   }
 
   const email =
@@ -56,8 +69,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
+    const { formsDb } = await import("@/lib/supabase/formsDb");
+    const supabase = await formsDb();
 
     const payload: Database["public"]["Tables"]["modern_subscribers"]["Insert"] = {
       email,
@@ -76,7 +89,7 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("New name for the acquisitions list", [
+    await notifyOwner("subscriber", "New name for the acquisitions list", [
       `Email: ${email}`,
     ]);
     return NextResponse.json({ ok: true, stored: true });

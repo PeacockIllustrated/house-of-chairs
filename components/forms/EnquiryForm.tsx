@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import type { EnquiryKind } from "@/lib/supabase/types";
+import { HONEYPOT_FIELD } from "@/lib/botCheck";
+import Honeypot from "./Honeypot";
+import { useStartedAt } from "./useStartedAt";
+import { useTurnstile } from "./useTurnstile";
 
 const KIND_LABELS: Partial<Record<EnquiryKind, string>> = {
   piece: "About a piece",
@@ -29,6 +33,8 @@ export default function EnquiryForm({
     "idle",
   );
   const [note, setNote] = useState("");
+  const startedAt = useStartedAt();
+  const turnstile = useTurnstile();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,6 +43,7 @@ export default function EnquiryForm({
     setNote("");
     const form = e.currentTarget;
     const data = new FormData(form);
+    const turnstileToken = await turnstile.getToken();
     try {
       const res = await fetch("/api/enquire", {
         method: "POST",
@@ -47,8 +54,12 @@ export default function EnquiryForm({
           message: data.get("message"),
           kind: data.get("kind"),
           pieceSlug: pieceSlug ?? null,
+          [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD),
+          startedAt: startedAt.current,
+          turnstileToken,
         }),
       });
+      turnstile.reset();
       const json = await res.json();
       if (res.ok) {
         setStatus("ok");
@@ -68,7 +79,13 @@ export default function EnquiryForm({
   }
 
   return (
-    <form className="form" onSubmit={onSubmit} noValidate>
+    <form
+      className="form"
+      onSubmit={onSubmit}
+      onFocus={turnstile.arm}
+      noValidate
+    >
+      <Honeypot />
       {pieceTitle ? (
         <input type="hidden" name="pieceTitle" value={pieceTitle} />
       ) : null}
@@ -111,6 +128,8 @@ export default function EnquiryForm({
           }
         />
       </div>
+
+      <div ref={turnstile.slot} className="ts-slot" />
 
       <button className="enquire" type="submit" disabled={status === "sending"}>
         {status === "sending" ? "Sending" : "Send enquiry"}

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { AdminData } from "@/components/admin/types";
+import { looksAutomated } from "@/lib/spamSignals";
 
 /**
  * Overview: the first screen of the dashboard. It answers two questions
@@ -52,6 +53,8 @@ export default function OverviewPanel({
   onGo: (panel: PanelId) => void;
 }) {
   const { stats, jobs, recent } = useMemo(() => {
+    // Bot enquiries fold away in the enquiries tab; count only buyers.
+    const buyers = data.enquiries.filter((en) => !looksAutomated(en));
     const count = (s: string) =>
       data.pieces.filter((p) => p.status === s).length;
 
@@ -95,9 +98,9 @@ export default function OverviewPanel({
       },
       {
         label: "Enquiries",
-        value: data.enquiries.length,
+        value: buyers.length,
         note: "waiting for a reply",
-        tone: data.enquiries.length > 0 ? "rose" : undefined,
+        tone: buyers.length > 0 ? "rose" : undefined,
         go: "enquiries",
       },
       {
@@ -115,11 +118,11 @@ export default function OverviewPanel({
     ];
 
     const jobs: Job[] = [];
-    if (data.enquiries.length > 0) {
+    if (buyers.length > 0) {
       jobs.push({
         id: "enquiries",
-        count: data.enquiries.length,
-        title: `${plural(data.enquiries.length, "enquiry", "enquiries")} waiting for a reply`,
+        count: buyers.length,
+        title: `${plural(buyers.length, "enquiry", "enquiries")} waiting for a reply`,
         detail:
           "Someone has written in about a piece. Enquiries stay here until you clear them.",
         action: "Read them",
@@ -164,7 +167,7 @@ export default function OverviewPanel({
       });
     }
 
-    const recent = [...data.enquiries]
+    const recent = [...buyers]
       .sort((a, b) => b.created_at.localeCompare(a.created_at))
       .slice(0, 3);
 
