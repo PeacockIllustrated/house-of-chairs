@@ -6,9 +6,6 @@ import { looksLikeBot } from "@/lib/botCheck";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database } from "@/lib/supabase/types";
 
-// Mail goes out over SMTP, which needs the Node runtime.
-export const runtime = "nodejs";
-
 /**
  * The acquisitions list: a single email from the footer form, stored in
  * modern_subscribers. Rate limited, and accepted gracefully when no database
@@ -92,9 +89,12 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("subscriber", "New name for the acquisitions list", [
-      `Email: ${email}`,
-    ]);
+    await notifyOwner("subscriber", "New name for the acquisitions list", {
+      preheader: `${email} joined the acquisitions list`,
+      heading: "New name for the acquisitions list",
+      body: "Someone has joined the list from the website.",
+      details: [["Email", email]],
+    });
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(

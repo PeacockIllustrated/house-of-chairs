@@ -1,92 +1,101 @@
 import "server-only";
-import nodemailer, { type Transporter } from "nodemailer";
+import { renderEmail, SHOP_EMAIL, type EmailParts } from "./emailTemplate";
 
 /**
- * Owner notifications, sent from the shop's own mailbox through Easily's mail
- * server. Each new enquiry arrives in sales@ from sales@, with the buyer as
- * Reply-To, so pressing Reply in the inbox answers the buyer directly and the
- * conversation stays in the shop's mailbox.
- *
- * Best-effort: the enquiry or interest is already stored in Supabase before
- * this runs, so a failed or unconfigured send never blocks the visitor.
+ * Every email the site sends goes through one Make.com scenario in the House
+ * of Chairs Make account ("House of Chairs website: send email"). The site
+ * renders the branded HTML (lib/emailTemplate) and posts it to the scenario's
+ * webhook; the scenario checks the shared key and sends it from the sales@
+ * mailbox over Easily's SMTP server. Sending from the shop's own mail server
+ * is what keeps these out of spam: the domain's SPF and DKIM records already
+ * vouch for it.
  *
  * Configure (server-only; never prefix NEXT_PUBLIC_):
- *   HOC_SMTP_PASSWORD  the sales@ mailbox password; nothing is sent without it
- *   HOC_SMTP_USER      optional, defaults to sales@houseofchairs.co.uk
- *   HOC_SMTP_HOST      optional, defaults to smtp.easily.uk
- *   HOC_SMTP_PORT      optional, defaults to 465 (TLS); 587 uses STARTTLS
- *   HOC_NOTIFY_TO      optional, where notifications go; defaults to the user
+ *   HOC_MAKE_WEBHOOK_URL  the scenario's webhook URL
+ *   HOC_MAKE_KEY          the shared key the scenario checks
  */
 
-const USER = process.env.HOC_SMTP_USER?.trim() || "sales@houseofchairs.co.uk";
-const PASSWORD = process.env.HOC_SMTP_PASSWORD ?? "";
-const HOST = process.env.HOC_SMTP_HOST?.trim() || "smtp.easily.uk";
-const PORT = Number(process.env.HOC_SMTP_PORT) || 465;
-const TO = process.env.HOC_NOTIFY_TO?.trim() || USER;
+const WEBHOOK_URL = process.env.HOC_MAKE_WEBHOOK_URL?.trim() ?? "";
+const MAKE_KEY = process.env.HOC_MAKE_KEY?.trim() ?? "";
+const SITE = "houseofchairs.co.uk";
 
-export type NotificationKind = "enquiry" | "interest" | "subscriber";
+export type EmailKind = "enquiry" | "interest" | "subscriber" | "reply";
 
-/** Whether owner notifications can be sent. */
-export const emailConfigured = PASSWORD !== "";
+/** Whether the site can send email at all. */
+export const emailConfigured = Boolean(WEBHOOK_URL && MAKE_KEY);
 
-// A plain address only: anything with quotes, brackets, commas or spaces is
-// left off the Reply-To rather than handed to the mail parser.
+// A plain address only. Anything with quotes, brackets, commas or spaces is
+// refused rather than handed on to a mail server.
 const PLAIN_ADDRESS = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
+export function isPlainAddress(s: string): boolean {
+  return PLAIN_ADDRESS.test(s.trim());
+}
+
 /** One line, no control characters, so nothing can break out of a header. */
-function oneLine(s: string, max = 150): string {
+export function oneLine(s: string, max = 150): string {
   return s.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, max);
 }
 
-let transport: Transporter | null = null;
+interface SendArgs {
+  kind: EmailKind;
+  to: string;
+  subject: string;
+  html: string;
+  /** Where a reply should go; defaults to the shop. */
+  replyTo?: string;
+  /** Send the shop a blind copy, so the mailbox keeps a record. */
+  copyShop?: boolean;
+}
 
-function getTransport(): Transporter {
-  if (!transport) {
-    transport = nodemailer.createTransport({
-      host: HOST,
-      port: PORT,
-      secure: PORT === 465,
-      requireTLS: PORT !== 465,
-      auth: { user: USER, pass: PASSWORD },
-      // A slow mail server must not hold the visitor's response open long.
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000,
+export type SendResult = { ok: true } | { ok: false; reason: string };
+
+export async function sendEmail(a: SendArgs): Promise<SendResult> {
+  if (!emailConfigured) return { ok: false, reason: "not-configured" };
+  if (!isPlainAddress(a.to)) return { ok: false, reason: "bad-address" };
+  const replyTo =
+    a.replyTo && isPlainAddress(a.replyTo) ? a.replyTo.trim() : SHOP_EMAIL;
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        key: MAKE_KEY,
+        site: SITE,
+        kind: a.kind,
+        to: a.to.trim(),
+        subject: oneLine(a.subject),
+        html: a.html,
+        replyTo,
+        copyShop: a.copyShop ? "yes" : "no",
+      }),
+      // A slow scenario must not hold the response open for long.
+      signal: AbortSignal.timeout(8000),
     });
+    return res.ok ? { ok: true } : { ok: false, reason: `make-${res.status}` };
+  } catch {
+    return { ok: false, reason: "unreachable" };
   }
-  return transport;
 }
 
 /**
- * Send the owner a plain-text notification. Never throws; returns whether the
- * mail server accepted it. `replyTo` is the visitor's address, when they left
- * one, so a reply from the inbox goes straight back to them.
+ * Tell the shop about something that came in. Best-effort and never throws:
+ * the row is already stored, so a failed send never blocks the visitor.
+ * `replyTo` is the visitor's address, when they left one, so pressing Reply
+ * in the inbox answers them directly.
  */
 export async function notifyOwner(
-  kind: NotificationKind,
+  kind: Exclude<EmailKind, "reply">,
   subject: string,
-  lines: string[],
-  replyTo?: { email: string; name?: string } | null,
+  parts: EmailParts,
+  replyTo?: string | null,
 ): Promise<boolean> {
-  if (!emailConfigured) return false;
-  const address = replyTo?.email?.trim() ?? "";
-  try {
-    await getTransport().sendMail({
-      from: { name: "House of Chairs website", address: USER },
-      to: TO,
-      replyTo: PLAIN_ADDRESS.test(address)
-        ? { name: oneLine(replyTo?.name ?? "", 80), address }
-        : undefined,
-      subject: oneLine(subject),
-      text: lines.join("\n"),
-      headers: { "X-HoC-Notification": kind },
-    });
-    return true;
-  } catch (err) {
-    console.error(
-      "notifyOwner failed:",
-      err instanceof Error ? err.message : "unknown error",
-    );
-    return false;
-  }
+  const r = await sendEmail({
+    kind,
+    to: SHOP_EMAIL,
+    subject,
+    html: renderEmail(parts),
+    replyTo: replyTo ?? undefined,
+  });
+  return r.ok;
 }

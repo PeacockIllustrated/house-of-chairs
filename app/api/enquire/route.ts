@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyOwner } from "@/lib/email";
+import { SITE_URL } from "@/lib/emailTemplate";
 import { looksLikeBot } from "@/lib/botCheck";
 import { looksAutomated } from "@/lib/spamSignals";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database, EnquiryKind } from "@/lib/supabase/types";
-
-// Mail goes out over SMTP, which needs the Node runtime.
-export const runtime = "nodejs";
 
 const KINDS: EnquiryKind[] = ["piece", "sourcing", "selling"];
 
@@ -133,20 +131,27 @@ export async function POST(req: Request) {
       const subject = pieceTitle
         ? `Enquiry: ${pieceTitle}, from ${name}`
         : `New ${kind} enquiry from ${name}`;
+      const first = name.split(/\s+/)[0] || name;
       await notifyOwner(
         "enquiry",
         subject,
-        [
-          `${name} <${email}>`,
-          pieceTitle
-            ? `About: ${pieceTitle}\nhttps://houseofchairs.co.uk/piece/${pieceSlug}`
-            : `About: ${kind === "piece" ? "no piece named" : kind}`,
-          "",
-          message,
-          "",
-          "Reply to this email to answer them directly.",
-        ],
-        { email, name },
+        {
+          preheader: `${name} wrote: ${message.slice(0, 90)}`,
+          heading: pieceTitle
+            ? `New enquiry about the ${pieceTitle}`
+            : "New enquiry",
+          body: `${name} has written in through the website. Reply to this email to answer ${first} directly, or reply from the dashboard.`,
+          details: [
+            ["Name", name],
+            ["Email", email],
+            ["About", pieceTitle ?? (kind === "piece" ? "No piece named" : kind)],
+          ],
+          quote: { intro: "Their message", text: message },
+          button: pieceTitle
+            ? { label: "View the piece", href: `${SITE_URL}/piece/${pieceSlug}` }
+            : { label: "Open the dashboard", href: `${SITE_URL}/admin` },
+        },
+        email,
       );
     }
     return NextResponse.json({ ok: true, stored: true });

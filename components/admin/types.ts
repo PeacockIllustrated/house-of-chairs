@@ -117,6 +117,7 @@ export interface AdminEnquiry {
   message: string;
   kind: EnquiryKind;
   created_at: string;
+  replied_at?: string | null;
 }
 export interface AdminInterest {
   id: string;

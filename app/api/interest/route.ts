@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { rateLimit } from "@/lib/rateLimit";
 import { notifyOwner } from "@/lib/email";
+import { SITE_URL } from "@/lib/emailTemplate";
 import { looksLikeBot } from "@/lib/botCheck";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database } from "@/lib/supabase/types";
-
-// Mail goes out over SMTP, which needs the Node runtime.
-export const runtime = "nodejs";
 
 /**
  * "I want this": a lightweight expression of interest against a piece, with an
@@ -97,10 +95,25 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("interest", `Interest registered in ${pieceSlug}`, [
-      `Piece: ${pieceSlug}`,
-      `Email: ${email ?? "not left"}`,
-    ], email ? { email } : null);
+    await notifyOwner(
+      "interest",
+      `Interest registered in ${pieceSlug}`,
+      {
+        preheader: email
+          ? `${email} would like to hear about ${pieceSlug}`
+          : `Someone registered interest in ${pieceSlug}`,
+        heading: "Interest registered",
+        body: email
+          ? "Someone would like to hear about this piece. Reply to this email to write to them."
+          : "Someone registered interest in this piece without leaving an address.",
+        details: [
+          ["Piece", pieceSlug],
+          ["Email", email ?? "Not left"],
+        ],
+        button: { label: "View the piece", href: `${SITE_URL}/piece/${pieceSlug}` },
+      },
+      email,
+    );
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(

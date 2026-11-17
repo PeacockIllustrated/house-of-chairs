@@ -1219,7 +1219,7 @@ button.enquire {
   display: flex;
   flex-direction: column;
 }
-.admin-enquiry,
+.admin-enquiry-item,
 .admin-piece {
   padding: 1.4rem 0;
   border-bottom: var(--hair);
@@ -1287,6 +1287,27 @@ button.enquire {
 }
 .admin-enquiry-actions a.enquire {
   color: inherit;
+}
+.admin-reply {
+  margin-top: 1.2rem;
+  padding: 1.2rem;
+  background: var(--panel);
+  border-radius: var(--radius-m);
+  display: grid;
+  gap: 1rem;
+}
+.admin-reply .field {
+  margin-bottom: 0;
+}
+.admin-reply .field textarea {
+  min-height: 12rem;
+}
+.admin-reply-error {
+  color: var(--rose);
+  margin: 0;
+}
+.admin-reply .admin-enquiry-actions {
+  flex-wrap: wrap;
 }
 .admin-automated {
   margin-top: 2.4rem;
