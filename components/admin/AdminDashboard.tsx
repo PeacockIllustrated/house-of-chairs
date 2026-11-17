@@ -10,6 +10,7 @@ import WordsPanel from "@/components/admin/WordsPanel";
 import QuestionsPanel from "@/components/admin/QuestionsPanel";
 import SitePanel from "@/components/admin/SitePanel";
 import EnquiriesPanel from "@/components/admin/EnquiriesPanel";
+import { looksAutomated } from "@/lib/spamSignals";
 import InterestPanel from "@/components/admin/InterestPanel";
 import SubscribersPanel from "@/components/admin/SubscribersPanel";
 
@@ -160,7 +161,9 @@ export default function AdminDashboard() {
   // Only the counts that grow on their own are worth a badge; the pieces
   // count is the owner's own doing and reads on the overview instead.
   const badge = (id: PanelId): number | null => {
-    if (id === "enquiries") return data.enquiries.length;
+    // Bot enquiries fold away in the panel, so they do not count here.
+    if (id === "enquiries")
+      return data.enquiries.filter((en) => !looksAutomated(en)).length;
     if (id === "interest") return data.interest.length;
     if (id === "list") return data.subscribers.length;
     return null;
@@ -279,7 +282,11 @@ export default function AdminDashboard() {
             <SitePanel settings={data.settings} onReload={reload} />
           ) : null}
           {panel === "enquiries" ? (
-            <EnquiriesPanel enquiries={data.enquiries} onDelete={deleteEnquiry} />
+            <EnquiriesPanel
+              enquiries={data.enquiries}
+              pieces={data.pieces}
+              onDelete={deleteEnquiry}
+            />
           ) : null}
           {panel === "interest" ? (
             <InterestPanel

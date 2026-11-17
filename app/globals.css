@@ -999,6 +999,21 @@ dd {
 }
 
 /* Forms: enquire, sell, admin */
+/* Turnstile's slot (components/forms/useTurnstile): takes no room unless
+   Cloudflare asks a doubtful visitor to tick its box. */
+.ts-slot:empty {
+  display: none;
+}
+.ts-slot {
+  margin: 0.4rem 0 1rem;
+}
+/* Interaction-only mode keeps an invisible iframe in the slot; it takes no
+   room until Cloudflare shows the box. */
+.ts-slot:has(iframe[style*="display: none"]),
+.ts-slot:not(:has(iframe)) {
+  margin: 0;
+}
+
 /* The bot honeypot (components/forms/Honeypot): off-screen, never seen. */
 .hp-field {
   position: absolute;
@@ -1259,6 +1274,41 @@ button.enquire {
 }
 .admin-enquiry a {
   color: var(--sea);
+}
+.admin-enquiry-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+.admin-enquiry-actions .enquire {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.admin-enquiry-actions a.enquire {
+  color: inherit;
+}
+.admin-automated {
+  margin-top: 2.4rem;
+  border-top: var(--hair);
+  padding-top: 1.2rem;
+}
+.admin-automated summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.admin-automated .admin-enquiry {
+  opacity: 0.7;
+}
+.admin-automated-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0;
 }
 
 @media (max-width: 860px) {

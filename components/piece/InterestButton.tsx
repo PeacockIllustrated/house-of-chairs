@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { HONEYPOT_FIELD } from "@/lib/botCheck";
 import Honeypot from "@/components/forms/Honeypot";
+import { useTurnstile } from "@/components/forms/useTurnstile";
 import { useStartedAt } from "@/components/forms/useStartedAt";
 
 /**
@@ -18,11 +19,13 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
   );
   const [note, setNote] = useState("");
   const startedAt = useStartedAt();
+  const turnstile = useTurnstile();
 
   async function register(email: string | null, trap: string) {
     if (status === "sending") return;
     setStatus("sending");
     setNote("");
+    const turnstileToken = await turnstile.getToken();
     try {
       const res = await fetch("/api/interest", {
         method: "POST",
@@ -32,8 +35,10 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
           email,
           [HONEYPOT_FIELD]: trap,
           startedAt: startedAt.current,
+          turnstileToken,
         }),
       });
+      turnstile.reset();
       const json = await res.json();
       if (res.ok) {
         setStatus("ok");
@@ -70,7 +75,12 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
   return (
     <div className="interest">
       {open ? (
-        <form className="interest-form" onSubmit={onSubmit} noValidate>
+        <form
+          className="interest-form"
+          onSubmit={onSubmit}
+          onFocus={turnstile.arm}
+          noValidate
+        >
           <Honeypot />
           <p className="mono interest-lead">
             Leave an email and we will tell you when this piece moves, or press
@@ -93,6 +103,7 @@ export default function InterestButton({ pieceSlug }: { pieceSlug: string }) {
               {status === "sending" ? "Noting" : "Register interest"}
             </button>
           </div>
+          <div ref={turnstile.slot} className="ts-slot" />
           {note ? (
             <p className="form-note mono" data-tone="error" role="status">
               {note}
