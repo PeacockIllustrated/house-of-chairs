@@ -6,6 +6,9 @@ import { looksLikeBot } from "@/lib/botCheck";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database } from "@/lib/supabase/types";
 
+// Mail goes out over SMTP, which needs the Node runtime.
+export const runtime = "nodejs";
+
 /**
  * "I want this": a lightweight expression of interest against a piece, with an
  * optional email so the owner can follow up. Stored in modern_interest and rolled

@@ -7,6 +7,9 @@ import { looksAutomated } from "@/lib/spamSignals";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database, EnquiryKind } from "@/lib/supabase/types";
 
+// Mail goes out over SMTP, which needs the Node runtime.
+export const runtime = "nodejs";
+
 const KINDS: EnquiryKind[] = ["piece", "sourcing", "selling"];
 
 function clientKey(req: Request): string {

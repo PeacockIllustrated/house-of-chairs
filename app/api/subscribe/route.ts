@@ -6,6 +6,9 @@ import { looksLikeBot } from "@/lib/botCheck";
 import { passesTurnstile, TURNSTILE_REFUSAL } from "@/lib/turnstile";
 import type { Database } from "@/lib/supabase/types";
 
+// Mail goes out over SMTP, which needs the Node runtime.
+export const runtime = "nodejs";
+
 /**
  * The acquisitions list: a single email from the footer form, stored in
  * modern_subscribers. Rate limited, and accepted gracefully when no database
