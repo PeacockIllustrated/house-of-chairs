@@ -129,6 +129,8 @@ interface EnquiryRow {
   message: string;
   kind: EnquiryKind;
   created_at: string;
+  /** When the owner last replied from the dashboard (0008). */
+  replied_at?: string | null;
 }
 interface EnquiryInsert {
   piece_id?: string | null;
@@ -288,7 +290,7 @@ export interface Database {
       modern_enquiries: {
         Row: EnquiryRow;
         Insert: EnquiryInsert;
-        Update: Partial<EnquiryInsert>;
+        Update: Partial<EnquiryInsert> & { replied_at?: string | null };
         Relationships: [];
       };
       modern_interest: {

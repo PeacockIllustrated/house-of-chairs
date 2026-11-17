@@ -89,9 +89,12 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    await notifyOwner("subscriber", "New name for the acquisitions list", [
-      `Email: ${email}`,
-    ]);
+    await notifyOwner("subscriber", "New name for the acquisitions list", {
+      preheader: `${email} joined the acquisitions list`,
+      heading: "New name for the acquisitions list",
+      body: "Someone has joined the list from the website.",
+      details: [["Email", email]],
+    });
     return NextResponse.json({ ok: true, stored: true });
   } catch {
     return NextResponse.json(
